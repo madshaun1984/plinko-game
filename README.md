@@ -26,4 +26,22 @@
 
 ---
 
-## Made with :two_hearts: by Kayo Oliveira
+## Development Setup
+
+NOTE: This is a rough guide for now, a more comprehensive guide will be added when I get some time.
+
+1. Create an app on Firebase & get the required values (will update with a step by step later)
+1. Install Node.js
+1. Install required modules
+1. run ``` mv .env.example .env ```
+1. Edit ".env" and update the varaibles with the values retrieved from Firebase
+1. (Optional) Edit "main.tsx" and set the remaining variable values as retrieved from Firebase
+1. Open VSCode - Install modules as suggested along with the firebase sdk & firebase platform-tools 
+1. From the command line run the following commands
+	1. cd G:\private-repos\plinko-game
+	1. npx vite build
+	1. firebase init hosting ### note: set dir to "dist"
+	1. (Deploy to Firebase) firebase deploy --only hosting
+	1. (Run locally) firebase emulators:start
+
+## Credit for original design & code goes to Kayo Oliveira
