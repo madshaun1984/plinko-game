@@ -28,10 +28,10 @@ export function DefaultLayout() {
   })
 
   return (
-    <div className="flex relative min-h-screen w-full flex-col justify-between bg-background">
-      <div className="absolute right-6 bottom-6 z-[9999]">
+    <div className="relative flex min-h-screen w-full flex-col justify-between bg-background">
+      <div className="absolute bottom-6 right-6 z-[9999]">
         <a
-          href="https://www.buymeacoffee.com/kayooliveira"
+          href="https://www.buymeacoffee.com/madshaun1984"
           target="_blank"
           rel="noreferrer"
         >
