@@ -35,7 +35,7 @@ export function LoginPage() {
         className="flex items-center gap-2 rounded-md bg-red-500 px-6 py-4 font-bold text-text shadow-sm transition-colors hover:bg-red-700"
       >
         <GoogleLogo size="20" weight="fill" />
-        Sign in with Google
+        Sign in with Pi Network
       </button>
     </div>
   )

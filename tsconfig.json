@@ -3,7 +3,7 @@
     "target": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
-    "allowJs": false,
+    "allowJs": true,
     "skipLibCheck": false,
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
@@ -18,12 +18,8 @@
     "baseUrl": "./src",
     "rootDir": "./src",
     "paths": {
-      "@sounds/*":[
-        "assets/sounds/*"
-      ],
-      "@images/*":[
-        "assets/img/*"
-      ]
+      "@sounds/*": ["assets/sounds/*"],
+      "@images/*": ["assets/img/*"]
     }
   },
   "include": ["./src"]

@@ -10,10 +10,14 @@
       href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;700&display=swap"
       rel="stylesheet"
     />
+    <script src="https://sdk.minepi.com/pi-sdk.js"></script>
     <title>Plinko</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      Pi.init({ version: '2.0', sandbox: true })
+    </script>
   </body>
 </html>

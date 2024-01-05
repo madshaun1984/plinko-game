@@ -24,7 +24,7 @@ export function DefaultLayout() {
       }
       return
     }
-    await setBalanceOnDatabase(100)
+    //await setBalanceOnDatabase(100)
   })
 
   return (

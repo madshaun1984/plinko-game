@@ -1,12 +1,54 @@
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
+
 import { ref, set } from 'firebase/database'
 import { produce } from 'immer'
 import { auth, database } from 'lib/firebase'
 import toast from 'react-hot-toast'
 import { random } from 'utils/random'
 import create from 'zustand'
+import axios from 'axios'
+
+// DO NOT expose these values to public
+/*const apiKey = import.meta.env.VITE_PI_API_KEY
+const walletPrivateSeed = import.meta.env.VITE_PI_WALLET_PRIVATE_SEED
+const piBackend = new PiNetwork(apiKey, walletPrivateSeed)*/
+
+const Pi = window.Pi
+
+type MyPaymentMetadata = {}
+
+type AuthResult = {
+  accessToken: string
+  user: {
+    uid: string
+    username: string
+  }
+}
+
+interface PaymentDTO {
+  amount: number
+  user_uid: string
+  created_at: string
+  identifier: string
+  metadata: Object
+  memo: string
+  status: {
+    developer_approved: boolean
+    transaction_verified: boolean
+    developer_completed: boolean
+    cancelled: boolean
+    user_cancelled: boolean
+  }
+  to_address: string
+  transaction: null | {
+    txid: string
+    verified: boolean
+    _link: string
+  }
+}
 
 interface User {
+  uid: string
   id: string
   name: string
   email: string
@@ -31,6 +73,7 @@ interface State {
   incrementBalance: (amount: number) => Promise<void>
   decrementBalance: (amount: number) => Promise<void>
   redeemGift: () => Promise<void>
+  fundWallet: (amount: number) => Promise<void>
 }
 
 function storeUser(user: User) {
@@ -53,6 +96,46 @@ const userInitialState: User = {
 
 const walletInitialState: Wallet = {
   balance: 0
+}
+
+const axiosClient = axios.create({
+  baseURL: import.meta.env.VITE_PLINKO_APP_BACKEND_URL!,
+  timeout: 20000,
+  withCredentials: true
+})
+const config = {
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': 'https://plinko.digitaldungeon.co.uk'
+  }
+}
+
+const onIncompletePaymentFound = (payment: PaymentDTO) => {
+  console.log('onIncompletePaymentFound', payment)
+  return axiosClient.post('/payments/incomplete', { payment })
+}
+
+const onReadyForServerApproval = (paymentId: string) => {
+  console.log('onReadyForServerApproval', paymentId)
+  axiosClient.post('/payments/approve', { paymentId }, config)
+}
+
+const onReadyForServerCompletion = (paymentId: string, txid: string) => {
+  console.log('onReadyForServerCompletion', paymentId, txid)
+  axiosClient.post('/payments/complete', { paymentId, txid }, config)
+}
+
+const onCancel = (paymentId: string) => {
+  console.log('onCancel', paymentId)
+  return axiosClient.post('/payments/cancelled_payment', { paymentId })
+}
+
+const onError = (error: Error, payment?: PaymentDTO) => {
+  console.log('onError', error)
+  if (payment) {
+    console.log(payment)
+    // handle the error accordingly
+  }
 }
 
 export const useAuthStore = create<State>((setState, getState) => ({
@@ -111,6 +194,32 @@ export const useAuthStore = create<State>((setState, getState) => ({
       console.error('redeemGiftError', error)
     }
   },
+  fundWallet: async (amount: number) => {
+    try {
+      const txId = await Pi.createPayment(
+        {
+          // Amount of π to be paid:
+          amount: amount.toFixed(8),
+          // An explanation of the payment - will be shown to the user:
+          memo: 'Plinko wallet funding.', // e.g: "Digital kitten #1234",
+          // An arbitrary developer-provided metadata object - for your own usage:
+          metadata: {
+            uid: getState().user.id
+          } // e.g: { kittenId: 1234 }
+        },
+        {
+          // Callbacks you need to implement - read more about those in the detailed docs linked below:
+          onReadyForServerApproval,
+          onReadyForServerCompletion,
+          onCancel,
+          onError
+        }
+      )
+    } catch (error) {
+      toast.error('A payment error occured.')
+      console.error('Payment Error', error)
+    }
+  },
   incrementBalance: async (amount: number) => {
     try {
       setState(state => ({ ...state, isWalletLoading: true }))
@@ -134,11 +243,20 @@ export const useAuthStore = create<State>((setState, getState) => ({
   signIn: async () => {
     try {
       setState(state => ({ ...state, isAuthLoading: true }))
-      const provider = new GoogleAuthProvider()
-      const { user } = await signInWithPopup(auth, provider)
-      const { uid: id, displayName: name, photoURL: profilePic, email } = user
-      if (name && email) {
-        const newUser = { id, name, email, profilePic: profilePic || '' }
+      const scopes = ['payments', 'username', 'wallet_address']
+      const authResult: AuthResult = await Pi.authenticate(
+        scopes,
+        onIncompletePaymentFound
+      ).catch(function (error) {
+        console.error(error)
+      })
+      axiosClient.post('/user/signin', { authResult }, config)
+      if (authResult['user']['uid'] && authResult['user']['username']) {
+        const newUser = {
+          id: authResult['user'].uid,
+          name: authResult['user'].username,
+          email: ''
+        }
         storeUser(newUser)
         setState(
           produce<State>(state => {
@@ -150,7 +268,7 @@ export const useAuthStore = create<State>((setState, getState) => ({
       }
       setState(state => ({ ...state, isLoading: false }))
     } catch (error) {
-      toast.error('Ocorreu um erro ao fazer login')
+      toast.error('An error occured during login')
       console.error('signInError', error)
     }
   },

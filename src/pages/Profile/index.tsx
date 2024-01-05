@@ -46,10 +46,10 @@ export function Profile(user: User) {
           'text-purple': user.uid === authUser.id
         })}
       >
-        {user.name || 'Jogador Anônimo'} {user.uid === authUser.id && '(você)'}
+        {user.name || 'Jogador Anônimo'} {user.uid === authUser.id && '(You)'}
       </span>
       <span className="text-center text-xl font-bold">
-        {formatPoints(user.currentBalance)} PPs
+        {formatPoints(user.currentBalance)} Pi
       </span>
     </div>
   )
