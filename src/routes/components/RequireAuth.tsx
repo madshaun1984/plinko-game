@@ -11,7 +11,13 @@ export function RequireAuth() {
     if (user && !isAuth) {
       const { uid: id, displayName: name, email, photoURL: profilePic } = user
       if (name && email) {
-        const newUser = { id, name, email, profilePic: profilePic || '' }
+        const newUser = {
+          uid: id,
+          id,
+          name,
+          email,
+          profilePic: profilePic || ''
+        }
         setUser(newUser)
       }
     }

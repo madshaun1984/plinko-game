@@ -24,7 +24,8 @@ export function DefaultLayout() {
       }
       return
     }
-    //await setBalanceOnDatabase(100)
+    const startingBalance: Number = 0
+    await setBalanceOnDatabase(Number(startingBalance.toFixed(8)))
   })
 
   return (

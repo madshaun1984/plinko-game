@@ -1,12 +1,12 @@
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth'
-
 import { ref, set } from 'firebase/database'
 import { produce } from 'immer'
 import { auth, database } from 'lib/firebase'
 import toast from 'react-hot-toast'
 import { random } from 'utils/random'
-import create from 'zustand'
+import { create } from 'zustand'
 import axios from 'axios'
+import { useState } from 'react'
 
 // DO NOT expose these values to public
 /*const apiKey = import.meta.env.VITE_PI_API_KEY
@@ -89,6 +89,7 @@ function clearUser() {
 }
 
 const userInitialState: User = {
+  uid: '',
   id: '',
   name: '',
   email: ''
@@ -106,28 +107,67 @@ const axiosClient = axios.create({
 const config = {
   headers: {
     'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': 'https://plinko.digitaldungeon.co.uk'
+    'Access-Control-Allow-Origin': 'https://plinko.digitaldungeon.co.uk',
+    'Access-Control-Allow-Credentials': 'true'
   }
 }
 
 const onIncompletePaymentFound = (payment: PaymentDTO) => {
-  console.log('onIncompletePaymentFound', payment)
-  return axiosClient.post('/payments/incomplete', { payment })
+  try {
+    console.log('onIncompletePaymentFound', payment)
+    return axiosClient.post('/payments/incomplete', { payment })
+  } catch (error) {
+    console.debug(error)
+  }
 }
 
 const onReadyForServerApproval = (paymentId: string) => {
-  console.log('onReadyForServerApproval', paymentId)
-  axiosClient.post('/payments/approve', { paymentId }, config)
+  try {
+    console.log('onReadyForServerApproval', paymentId)
+    axiosClient.post('/payments/approve', { paymentId }, config)
+  } catch (error) {
+    console.debug(error)
+  }
 }
 
-const onReadyForServerCompletion = (paymentId: string, txid: string) => {
-  console.log('onReadyForServerCompletion', paymentId, txid)
-  axiosClient.post('/payments/complete', { paymentId, txid }, config)
-}
+/*const onReadyForServerCompletion = async (paymentId: string, txid: string) => {
+  try {
+    const [state, setState] = useState()
+    console.log('onReadyForServerCompletion', paymentId, txid)
+    const { data } = await axiosClient.post(
+      '/payments/complete',
+      { paymentId, txid },
+      config
+    )
+    const paymentDto: PaymentDTO = data
+
+    if (paymentDto.status.developer_completed != true) {
+      throw 'Payment was not completed.'
+    }
+
+  } catch (error) {
+    console.log(`Add funds error: ${error}`)
+  }
+}*/
+
+/*async function processPayment(paymentDto: PaymentDTO) {
+  const currentBalance = useAuthStore(state => state.wallet.balance)
+  const incrementBalance = useAuthStore(state => state.incrementBalance)
+  const newBalance = useAuthStore(state => state.wallet.balance)
+  console.log(`Payment recieved, adding ${paymentDto.amount} to balance.`)
+  console.log('Current Balance', currentBalance)
+  await incrementBalance(paymentDto.amount)
+  console.log('New Balance', newBalance)
+  console.log('Payment processed. Thank you!')
+}*/
 
 const onCancel = (paymentId: string) => {
-  console.log('onCancel', paymentId)
-  return axiosClient.post('/payments/cancelled_payment', { paymentId })
+  try {
+    console.log('onCancel', paymentId)
+    return axiosClient.post('/payments/cancelled_payment', { paymentId })
+  } catch (error) {
+    console.debug(error)
+  }
 }
 
 const onError = (error: Error, payment?: PaymentDTO) => {
@@ -210,7 +250,34 @@ export const useAuthStore = create<State>((setState, getState) => ({
         {
           // Callbacks you need to implement - read more about those in the detailed docs linked below:
           onReadyForServerApproval,
-          onReadyForServerCompletion,
+          onReadyForServerCompletion: async (
+            paymentId: string,
+            txid: string
+          ) => {
+            try {
+              console.log('onReadyForServerCompletion', paymentId, txid)
+              const { data } = await axiosClient.post(
+                '/payments/complete',
+                { paymentId, txid },
+                config
+              )
+              const paymentDto: PaymentDTO = data
+
+              if (paymentDto.status.developer_completed != true) {
+                throw 'Payment was not completed.'
+              }
+
+              console.log(
+                `Payment recieved, adding ${paymentDto.amount} to balance.`
+              )
+              console.log('Current Balance', getState().wallet.balance)
+              getState().incrementBalance(paymentDto.amount)
+              console.log('New Balance', getState().wallet.balance)
+              console.log('Payment processed. Thank you!')
+            } catch (error) {
+              console.log(`Add funds error: ${error}`)
+            }
+          },
           onCancel,
           onError
         }
@@ -251,10 +318,11 @@ export const useAuthStore = create<State>((setState, getState) => ({
         console.error(error)
       })
       axiosClient.post('/user/signin', { authResult }, config)
-      if (authResult['user']['uid'] && authResult['user']['username']) {
+      if (authResult.user.uid && authResult.user.username) {
         const newUser = {
-          id: authResult['user'].uid,
-          name: authResult['user'].username,
+          uid: authResult.user.uid,
+          id: authResult.user.uid,
+          name: authResult.user.username,
           email: ''
         }
         storeUser(newUser)

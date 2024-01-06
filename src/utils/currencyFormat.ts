@@ -4,7 +4,7 @@ export function currencyFormat(number: number) {
 
 export function formatPoints(number: number): string {
   const decPlaces = 10
-  if (number < 999) return number.toFixed(2)
+  if (number < 999) return number.toFixed(8)
   let newNumber: number | string = number
   const abbrev = [
     ' k',
